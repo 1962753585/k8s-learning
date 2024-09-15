@@ -1,3 +1,3 @@
 # Kubernetes Notes
-Email: 505697096@qq.com
+Email: 1962753585@qq.com
 
