@@ -1,0 +1,2413 @@
+
+CICD和DevOps：
+
+
+git:
+    分布式系统：本地远程、远程仓库
+
+    本地仓库：
+        工作区
+        暂存区
+        本地库
+
+    命令：
+        git config
+        git add, git commit, git log, git diff
+        git restore, git rm --cached
+        git reset
+            --soft
+            --mixed
+            --hard：存储数据丢失的风险
+        git mv
+        git rm [-r]
+
+    远程仓库：
+        协议：
+            git://
+            http://
+            https://
+                root /var/www/html/
+                    myproj.git
+
+                    https://IP:PORT/myproj.git
+
+                    https://github.com/iKubernetes/learning-jenkins-cicd.git
+            ssh://
+                IP:PORT/var/www/html/myproj.git
+
+                ssh://[user@]host.xz[:port]/path/to/repo.git
+
+                git@github.com:iKubernetes/learning-jenkins-cicd.git --> ssh://git@github.com:2222/iKubernetes/learning-jenkins-cicd.git
+
+                ~/.ssh/config
+
+
+
+
+            类比：
+                dockerhub.com/tomcat:tag
+
+                dockerhub.com/ikubernetes/demoapp:v1.0
+
+    版本库：对象存储库，4类对象
+        blob：文件
+        tree：目录单层结构
+        commit：提交
+        tag：附注标签
+
+        .git/objects
+
+
+    Organition：组织
+        k8sclub/
+
+        团队协作的工作流：
+            具有紧密关系的团队的协作：基于同一个库
+
+            非紧密关系团队间的协作：基于不同的库
+
+    GitLab：
+        CE：
+            Pull Requests = PR (GitHub)
+            Merge Requests = MR （GitLab）
+        EE
+
+        Cloud：
+
+    Omnibus GitLab：
+
+        传统架构的编排工具：
+            Chef
+            Puppet：
+                C/S
+            SaltStack
+            Ansible
+
+    工作流：
+        分支模型
+            master/main
+            main/develop
+            main/develop/feature
+            main/develop/feature/bugfix(hotfix)
+            main/develop/feature/bugfix(hotfix)/release
+
+            git-flow
+
+            main/feature
+                tag
+
+                持续发布
+
+            GitHub flow:
+                远程仓库：
+                    main
+
+                Developer A:
+                    clone:
+                        main分支
+                        feature/a: 研发分支
+
+                        推送feature/a至远程仓库
+                        在远程仓库，创建PR(MR)
+                            Open MR
+
+                                执行集成测试：CI Pipeline
+
+                        审核人员：批准
+
+                Maintainer：
+                    维护者：接受，Accept
+
+                        集成测试：CI Pipeline 
+                        上线测试：CD Pipeline CD Pipeline
+
+                    同时，删除短期的feature分支
+
+            Fork工作流：
+                external Developer X
+
+                fork 仓库至X自己的名称空间
+
+                    clone至本地
+
+
+
+
+
+
+Jenkins CICD
+
+
+
+    CICD
+        CI: 持续集成
+            Build
+            Test
+        CD：持续交付
+            Package
+            工件仓库服务
+        CD：持续部署
+            自动化部署
+            高可用部署策略
+                金丝雀部署
+                蓝绿部署
+
+
+        流程：流水线，Pipeline
+            多阶段
+                多步骤
+                    通常需要借助于工具程序
+
+            如何定义出阶段，在阶段中如何定义出步骤 
+
+    CICD Server：
+        Hudson --> Jenkins
+
+            Jenkins 1.x
+            Jenkins 2.x
+
+            Java语言，JVM， JDK/JRE
+
+            Web UI
+
+        GitLab CICD
+
+        Tekton:
+            Knative：Serverless
+                Eventing
+                Serving
+                Build --> Tekton
+
+            Kubernetes：
+                声明式API
+                Conroller
+
+        JenkinX
+
+    Jenkins：
+
+        流水线配置：
+            Jenkins 1.x: 图形界面配置定义Pipeline，Freestyle pipeline
+
+            Jenkins 2.x：纯文本定义，Jenkinsfile, Pipeline
+
+    加速插件更新和安装：
+
+        测试各镜像站点的速度：
+
+        ~# curl -sSL https://cdn.jsdelivr.net/gh/lework/jenkins-update-center/speed-test.sh | bash
+
+
+        关闭数字证书签名认证：
+
+        ~# sed -i 's#$JENKINS_JAVA_OPTIONS#$JENKINS_JAVA_OPTIONS -Dhudson.model.DownloadService.noSignatureCheck=true#g' /etc/init.d/jenkins
+        ~# systemctl daemon-reload
+
+
+        替换引用的更新配置文件：
+
+
+        ~# sed -i 's#https://updates.jenkins.io/update-center.json#https://cdn.jsdelivr.net/gh/lework/jenkins-update-center@master/updates/ustc/update-center.json#gi' /var/lib/jenkins/hudson.model.UpdateCenter.xml
+        ~# rm -f /var/lib/jenkins/updates/default.json
+
+
+        ~# systemctl restart jenkins
+
+
+        参考项目：
+            https://github.com/lework/jenkins-update-center
+
+
+
+
+
+Jenkins：
+    CICD Server
+        定义CICD任务，并按需执行
+
+    任务类型：
+        Freestyle
+        Pipeline
+            Jenkinsfile
+
+        Input：code repository，git
+        Output：
+            工件仓库服务
+
+    示例： Spring-boot-helloworld, Java, Maven, mvn
+
+        工作空间：Workspace
+            $JENKINS_HOME = /var/lib/jenkins/workspaces/
+
+        CI:
+            git clone
+                GitHub
+                Gitee
+                local GitLab
+
+                16.
+
+
+
+    自由风格的构建任务示例代码1：
+
+        #!/bin/sh
+        echo "Fetch the code..."
+        rm -rf ./*
+        git clone https://gitee.com/lxj/spring-boot-helloWorld.git
+
+        # sed -i 's@http://deb.debian.org/debian@https://repo.huaweicloud.com/debian@gi' /etc/apt/sources.list 
+
+        echo "Building and Packaging..."
+        mvn -B -DSkipTests clean package 
+
+        echo "Testing..."
+        mvn test
+
+
+
+    curl -XPOST -d "EVENT" http://jenkins03.lxj.com:8080/project/spring-boot-helloworld 
+
+    00631cfab94a56f543e60712b1f7527d
+
+
+    glpat-fZWUDvi6gjHU581-fwzW
+
+
+
+
+
+
+
+
+    Maven的配置示例：
+
+      <mirrors>
+        <mirror>
+          <id>nexus-aliyun</id>
+          <mirrorOf>*</mirrorOf>
+          <url>http://maven.aliyun.com/nexus/content/groups/public</url>
+        </mirror>
+      </mirrors>
+
+
+    若要直接加在pom.xml文件中，则要使用<repository></repository>
+
+
+        <!-- 配置阿里云仓库 -->
+        <repositories>
+            <repository>
+                <id>aliyun-repos</id>
+                <url>https://maven.aliyun.com/repository/public</url>
+                <releases>
+                    <enabled>true</enabled>
+                </releases>
+                <snapshots>
+                    <enabled>false</enabled>
+                </snapshots>
+            </repository>
+        </repositories>
+        <pluginRepositories>
+            <pluginRepository>
+                <id>aliyun-repos</id>
+                <url>https://maven.aliyun.com/repository/public</url>
+                <releases>
+                    <enabled>true</enabled>
+                </releases>
+                <snapshots>
+                    <enabled>false</enabled>
+                </snapshots>
+            </pluginRepository>
+        </pluginRepositories>
+
+
+
+
+
+
+    运行参数化构建作业示例：
+
+        #!/bin/bash
+        echo "Print the parameters:"
+        echo "The release tag: ${RELEASE_TAG}."
+        echo "Is Publish: ${ISPUBLISH}."
+        echo "$Environment: ${ENVIRONMENT}."
+
+
+
+
+
+
+    把jenkins用户添加至docker组，需要重启jenkins服务才能生效。
+    
+        ~# usermod -G docker jenkins
+
+
+
+
+    部署应用至kubernetes集群； 
+
+        #!/bin/bash
+
+        sed -i "s#__IMAGE__#registry.lxj.com/ikubernetes/${JOB_NAME}:${GIT_COMMIT}#gi" deploy/all-in-one.yaml
+
+        kubectl --server ${K8S_API_SERVER} --insecure-skip-tls-verify=true --token=${HELLO_ADMIN_TOKEN} apply -f deploy/all-in-one.yaml
+
+
+
+
+
+
+
+
+
+
+作业：
+    1、基于spring-boot-helloworld，构建全自动化的流水线；
+        由gitlab的accept mr事件自动触发执行
+        jenkins成功执行后，回送事件给gitlab
+
+
+
+
+
+
+Jenkins：
+
+
+    freestyle：
+        代码管理
+        触发器：
+            定时执行
+            轮询SCM
+            GitHub
+            GitLab
+                事件类型：
+                    push
+                    tag_push
+                    open mr
+                    accept mr
+                    ...
+        构建步骤：spring-boot-helloworld项目
+            执行shell；           
+                mvn clean test package
+
+                CI
+            create image
+            push image
+                CD
+
+            kubectl 
+                CD
+
+        通知构建结果给用户
+
+        代码质量评估：SonarQube
+
+        分布式
+
+    Pipeline:
+        Pipeline as  code
+
+        Jenkins
+
+
+    curl -XPOST -d ''
+
+
+
+    Generic Webhook
+
+    ~# curl -X POST -H "Content-Type: application/json" -d '{ "ref": "refs/tags/v1.0.2" }' -vs http://jenkins03.lxj.com:8080/generic-webhook-trigger/invoke?token="12345678900987654321"
+
+
+    SECf84aed48ec853464c1995a1a62305a77f6c3f843e67fb93808653d214ebe47b2
+
+    https://oapi.dingtalk.com/robot/send?access_token=1c17e774850f954e87f9f6b260d66aa41271611574a446e0c4d7063917235ced
+
+    https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a0ab941e-c127-49df-b2bf-91a74953a68f
+
+Sonar:
+
+    https://binaries.sonarsource.com/?prefix=Distribution/
+
+
+    squ_2d51c6ae8a5ecba940e112b21ddfce2daf58e9a7
+
+
+分布式构建：
+    Agent类型：
+        静态：
+            节点
+            容器化
+        动态：
+            独立的Docker容器
+
+                jenkins/inbound-agent
+                    jdk11
+                    jdk17
+                    alpine-jdk11
+
+            Kubernetes Pod
+
+    连接方式：
+        SSH连接
+            密钥
+            口令
+        JNLP连接
+            secret
+
+
+    作业：
+        1、配置以上每种类型的Agent；
+        2、正常构建spring-boot-helloworld；
+            基于容器的agent上，无须构建和推送docker image
+
+
+
+
+
+
+
+    
+    Docker中运行的Agent
+        ~# docker run \
+            --add-host jenkins.lxj.com:172.29.2.9 \
+            --hostname agent01.lxj.com \
+            --init \
+            jenkins/inbound-agent:alpine-jdk11 \
+            -url http://jenkins.lxj.com:8080 \
+            -workDir=/home/jenkins/agent \
+            5c06bf2f3c27a63b51061d051fc060109a3433a3c5806c7c4d60e2571dbc1a23 \
+            agent01.lxj.com
+
+
+        以root用户的身份运行的agent
+
+        ~# docker run \
+            --add-host jenkins.lxj.com:172.29.2.9 \
+            --user root \
+            --init \
+            jenkins/inbound-agent:alpine-jdk11 \
+            -url http://jenkins.lxj.com:8080 \
+            -workDir=/appdata/jenkins/ \
+            3da41b028c213b95c354241cffcfaa512337ddbb84a63d6f989f5fff5c9803cb \
+            agent02.lxj.com
+
+
+        SSH Agent：
+
+        ~# JENKINS_AGENT_SSH_PUBKEY='ssh-rsa ……Wc= root@lab03.lxj.com'
+        ~# docker container run \
+            --add-host jenkins.lxj.com:172.29.7.1 \
+            --hostname ssh-agent01.lxj.com \
+            --publish 22022:22 \
+            jenkins/ssh-agent:jdk11 \
+            ${JENKINS_AGENT_SSH_PUBKEY}
+
+
+
+
+
+
+
+
+
+修改Docker监听的端口：
+
+[Service]
+ExecStart=
+ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2376
+
+测试访问：
+    ~#  curl -Ss docker01.lxj.com:2376/version | jq .
+
+
+
+
+
+
+
+
+
+
+
+~# docker run \
+    --add-host jenkins.lxj.com:172.29.7.1 \
+    --hostname agent01.lxj.com \
+    --init \
+    jenkins/inbound-agent:alpine-jdk11 \
+    -url http://jenkins.lxj.com:8080 \
+    -workDir=/home/jenkins/agent \
+    5c06bf2f3c27a63b51061d051fc060109a3433a3c5806c7c4d60e2571dbc1a23 \
+    agent01.lxj.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+SonarQube Server的配置：
+
+
+
+# 安全起见，我们限制仅能够通过postgres系统用户来基于本地Socket地址来登录postgresql的管理账户postgres，因而这里需要先切换系统用户，而后登录
+[root@master01 ~]# su - postgres
+-bash-4.2$ psql -U postgres
+psql (12.12 (Ubuntu 12.12-0ubuntu0.20.04.1))
+Type "help" for help.
+
+# 创建数据库角色sonarqube
+postgres=# CREATE USER sonarqube WITH ENCRYPTED PASSWORD 'lxj.com';
+CREATE ROLE
+
+# 创建数据库sonarqube，并设定其隶属于sonarqube角色；
+postgres=# CREATE DATABASE sonarqube OWNER sonarqube;
+CREATE DATABASE
+
+# 授权sonarqube用户在sonarqube数据库上拥有全部权限
+postgres=# GRANT ALL PRIVILEGES ON DATABASE sonarqube TO sonarqube;
+GRANT
+
+# 若有必要，可以为管理员postgres用户设置必要的密码
+postgres=# ALTER USER postgres WITH ENCRYPTED PASSWORD 'www.lxj.com';
+ALTER ROLE
+
+postgres=# \q
+-bash-4.2$ exit
+logout
+
+
+
+安装SonarQube：
+
+ 安装11或以上版本的JDK
+ CentOS 7: java-11-openjdk
+ Ubuntu 20.04: openjdk-11-jdk
+
+ 下载合适的SonarQube版本并解压到指定的目录下，这里以9.7.1版本为例；
+ ~]# curl -LO https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-9.7.1.62043.zip
+ ~]# unzip sonarqube-9.7.1.62043.zip -d /usr/local/
+ ~]# ln -sv /usr/local/sonarqube-9.7.1.62043  /usr/local/sonarqube
+
+ 创建用于运行SonarQube的普通用户，并将安装目录下的文件授权该用户访问
+ ~]# useradd -m sonarqube
+ ~]# chown -R sonarqube.sonarqube /usr/local/sonarqube/*
+
+
+
+配置SonarQube:
+
+配置SonarQube，编辑conf/sonar.properties配置文件，修改关键参数
+
+# 修改连接数据库的账号和密码
+sonar.jdbc.username=sonarqube
+sonar.jdbc.password=lxj.com
+
+# 修改数据库相关的URL，这里以此前配置的postgresql为例，其中的localhost为DB服务器的地址，而sonarqube为数据库名称；
+sonar.jdbc.url=jdbc:postgresql://localhost/sonarqube
+
+# 设定Web Server监听的地址和端口
+sonar.web.host=0.0.0.0
+sonar.web.port=9000
+
+# 如有必要，可修改SonarQube持久存储数据的位置，以下两个相对路径，均起始于sonarqube的安装目录，我们也可以使用绝对路径；
+sonar.path.data=data
+sonar.path.temp=temp
+
+
+
+ 若有必要，可编辑conf/wrapper.conf配置文件，指定java的路径
+ wrapper.java.command=java
+
+ 以普通用户的身份， 启动SonarQube
+ ~]# su - sonarqube -c "/usr/local/sonarqube/bin/linux-x86-64/sonar.sh start"
+
+
+
+
+
+手动启用sonar-scanner
+
+Sonar Scanner是独立的组件，需要单独部署，并配置其能够关联到SonarQube之上
+ 下载地址： https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/
+ 下载合适版本的sonar-scanner-cli程序，直接展开后简单配置即可使用；
+ 
+安装
+ ~]# curl -LO https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
+ ~]# unzip sonar-scanner-cli-4.7.0.2747-linux.zip  -d /usr/local/
+ ~]# ln -sv /usr/local/sonar-scanner-cli-4.7.0.2747-linux /usr/local/sonar-scanner
+
+
+
+
+
+
+
+
+
+
+
+
+
+声明式流水线示例：agent用于声明式流水线，它作为一个指令用于分配节点；
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Source') {
+            steps {
+                echo 'Get code from Git Repository...'
+            }
+        }
+    
+        stage('Build') {
+            steps {
+                echo 'Building...'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Testing...'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+            }
+        }
+    }    
+}
+
+一个真实可用的Pipeline示例：Spring-boot-helloworld
+
+pipeline {
+    agent  any   
+    tools {
+        maven 'maven-3.9.2'
+    }   
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', url: 'http://git.lxj.com/devops/spring-boot-helloWorld.git'
+            }
+        }        
+        stage('Build') {
+            steps {
+                sh '''
+                    mvn -B -DskipTests clean package
+                '''
+            }
+        }       
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+    }
+}
+
+
+
+
+作业：
+    1、将上面示例测试运行完成；
+    2、在分布式完成，将上面示例测试运行完成；
+
+
+
+回顾：
+    Pipeline as a code
+
+    Groovy
+
+    pipeline {
+        agent {any|none|label|kubernetes|...}
+        tools {
+            NAME1
+            NAME2
+            ...
+        }
+        stages {
+            stage('NAME') {
+                when {}
+                agent {}
+                steps {
+                    step1
+                    step2
+                    ...
+                }
+            }
+            ...
+        }
+        post {
+
+        }
+    }
+
+    Step：
+        git
+        sh
+        echo
+        ...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+示例1：基于Pipeline Job的流水线示例
+
+
+
+pipeline {
+    agent  any   
+    tools {
+        maven 'maven-3.9.2'
+    }   
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', url: 'http://git.lxj.com/devops/spring-boot-helloWorld.git'
+            }
+        }        
+        stage('Build') {
+            steps {
+                sh '''
+                    mvn -B -DskipTests clean package
+                '''
+            }
+        }       
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+    }
+}
+
+
+示例2：在Pipeline上使用环境变量
+
+pipeline {
+    agent any
+    tools {
+        maven 'maven-3.9.2'
+    }
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+    }
+}
+
+
+示例3：如何在Pipeline上使用Credential
+    方法：
+        使用withCredential()方法
+        有些step直接支持引用credential
+
+pipeline {
+    agent any
+    tools {
+        maven 'maven-3.9.2'
+    }
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', credentialsId: 'gitlab-root-credential', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+    }
+}
+
+
+
+
+示例4：构建和推送Docker镜像
+
+    问题：没有权限访问 unix:///var/run/docker.sock  （660, root, docker）
+        解决思路：
+            (1) usermod -G docker jenkins 
+                jenkins相关的Jave进程，以jenkins用户身份在运行
+            
+            (2) 调整Docker监听的套接字
+                -H tcp://127.0.0.1:2376
+            
+            (3) 配置到全局属性
+                sh 'docker build image ...'
+                与全局属性没有关联关系，因此不可用；
+
+        解决方案：
+            （1）将jenkins用户加入docker组的解决思路可用；
+                    需要重启jenkins进程才能生效； 
+
+            （2）调整Docker监听的套接字； 前提：执行了第一步，同时也调整了Docker监听的套接字，但未重启jenkins；
+                    sh 'docker -H tcp://127.0.0.1:2376 image build ...' 
+
+pipeline {
+    agent any
+    tools {
+        maven 'maven-3.9.2'
+    }
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        harborServer='registry.lxj.com'
+        projectName='spring-boot-helloworld'
+        imageUrl="${harborServer}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', credentialsId: 'gitlab-root-credential', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker image build . -t "${imageUrl}:${imageTag}"'
+            }           
+        }
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'harbor-user-credential', \
+                        passwordVariable: 'harborUserPassword', usernameVariable: 'harborUserName')]) {
+                    sh "echo ${harborUserPassword} | docker login -u ${env.harborUserName} --password-stdin ${harborServer}"
+                    sh "docker image push ${imageUrl}:${imageTag}"
+                }
+            }   
+        }        
+    }
+}
+
+
+示例5：在Pipeline上使用参数
+
+pipeline {
+    agent any
+    parameters {
+        booleanParam(name:'pushImage', defaultValue: 'true', description: 'Push Image to Harbor?')
+    }
+    tools {
+        maven 'maven-3.9.2'
+    }
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        harborServer='registry.lxj.com'
+        projectName='spring-boot-helloworld'
+        imageUrl="${harborServer}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', credentialsId: 'gitlab-root-credential', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker image build . -t "${imageUrl}:${imageTag}"'
+
+            }           
+        }
+        stage('Push Docker Image') {
+            steps {
+                // input(message: 'continue?')
+                withCredentials([usernamePassword(credentialsId: 'harbor-user-credential', passwordVariable: 'harborUserPassword', usernameVariable: 'harborUserName')]) {
+                    sh "echo ${harborUserPassword} | docker login -u ${env.harborUserName} --password-stdin ${harborServer}"
+                    sh "docker image push ${imageUrl}:${imageTag}"
+                }
+            }   
+        }        
+    }
+}
+
+
+
+
+
+
+
+示例6：条件式执行
+
+pipeline {
+    agent any
+    parameters {
+        booleanParam(name:'pushImage', defaultValue: 'true', description: 'Push Image to Harbor?')
+    }
+    tools {
+        maven 'maven-3.9.2'
+    }
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        harborServer='registry.lxj.com'
+        projectName='spring-boot-helloworld'
+        imageUrl="${harborServer}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', credentialsId: 'gitlab-root-credential', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker image build . -t "${imageUrl}:${imageTag}"'
+
+            }           
+        }
+        stage('Push Docker Image') {
+            when {
+                expression { params.pushImage }
+            }
+            steps {
+                // input(message: 'continue?')
+                withCredentials([usernamePassword(credentialsId: 'harbor-user-credential', passwordVariable: 'harborUserPassword', usernameVariable: 'harborUserName')]) {
+                    sh "echo ${harborUserPassword} | docker login -u ${env.harborUserName} --password-stdin ${harborServer}"
+                    sh "docker image push ${imageUrl}:${imageTag}"
+                }
+            }   
+        }        
+    }
+}
+
+
+
+
+
+
+
+示例7：自动触发执行：
+
+
+GitLab触发器配置格式：
+
+
+    triggers {
+        gitlab(
+          triggerOnPush: false,
+          triggerOnMergeRequest: true, 
+          triggerOpenMergeRequestOnPush: "never",
+          triggerOnNoteRequest: true,
+          noteRegex: "Jenkins please retry a build",
+          skipWorkInProgressMergeRequest: true,
+          ciSkip: false,
+          setBuildDescription: true,
+          addNoteOnMergeRequest: true,
+          addCiMessage: true,
+          addVoteOnMergeRequest: true,
+          acceptMergeRequestOnSuccess: false,
+          branchFilterType: "NameBasedFilter",
+          includeBranchesSpec: "release/qat",
+          excludeBranchesSpec: "",
+          pendingBuildName: "Jenkins",
+          cancelPendingBuildsOnUpdate: false,
+          secretToken: "abcdefghijklmnopqrstuvwxyz0123456789ABCDEF")
+    }
+
+
+
+
+
+pipeline {
+    agent any
+    parameters {
+        booleanParam(name:'pushImage', defaultValue: 'true', description: 'Push Image to Harbor?')
+    }
+    tools {
+        maven 'maven-3.9.2'
+    }
+    triggers {
+        gitlab(triggerOnPush: false,
+            triggerOnMergeRequest: true,
+            branchFilterType: 'All',
+            addVoteOnMergeRequest: true,
+            secretToken: '9iH0tq33ROMS07przzLiclNmfqSaoIeTOolHYf1E')
+    }
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        harborServer='registry.lxj.com'
+        projectName='spring-boot-helloworld'
+        imageUrl="${harborServer}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', credentialsId: 'gitlab-root-credential', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker image build . -t "${imageUrl}:${imageTag}"'
+
+            }           
+        }
+        stage('Push Docker Image') {
+            agent any 
+            when {
+                expression { params.pushImage == 'true' }
+                beforeAgent: true
+            }
+            steps {
+                // input(message: 'continue?')
+                withCredentials([usernamePassword(credentialsId: 'harbor-user-credential', passwordVariable: 'harborUserPassword', usernameVariable: 'harborUserName')]) {
+                    sh "echo ${harborUserPassword} | docker login -u ${env.harborUserName} --password-stdin ${harborServer}"
+                    sh "docker image push ${imageUrl}:${imageTag}"
+                }
+            }   
+        }        
+    }
+}
+
+
+
+提示：需要在GitLab上配置access token。
+
+
+
+
+
+
+示例8：Generic Webhook Trigger
+
+    说明：依赖于GWT插件
+
+
+
+pipeline {
+    agent any
+    parameters {
+        booleanParam(name:'pushImage', defaultValue: 'true', description: 'Push Image to Harbor?')
+    }    
+    tools {
+        maven 'maven-3.9.2'
+    }
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref']
+            ],
+            token: 'fClZ0e/kTcqL2ARh7YqxW/3ndOCZA2SqfKnRTLat',
+            causeString: 'Triggered on ${ref}',
+            printContributedVariables: true,
+            printPostContent: true
+        )
+    }   
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        harborServer='registry.lxj.com'
+        projectName='spring-boot-helloworld'
+        imageUrl="${harborServer}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', credentialsId: 'gitlab-root-credential', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker image build . -t "${imageUrl}:${imageTag}"'
+                // input(message: '镜像已经构建完成，是否要推送？')
+            }           
+        }
+        stage('Push Docker Image') {
+            when {
+                expression { params.pushImage }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'harbor-user-credential', passwordVariable: 'harborUserPassword', usernameVariable: 'harborUserName')]) {
+                    sh "docker login -u ${env.harborUserName} -p ${env.harborUserPassword} ${harborServer}"
+                    sh "docker image push ${imageUrl}:${imageTag}"
+                }
+            }   
+        }        
+    }
+}
+
+
+
+
+
+
+
+示例9：发送邮件通知
+
+
+pipeline {
+    agent any
+    parameters {
+        booleanParam(name:'pushImage', defaultValue: 'true', description: 'Push Image to Harbor?')
+    }    
+    tools {
+        maven 'maven-3.9.2'
+    }
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref']
+            ],
+            token: 'fClZ0e/kTcqL2ARh7YqxW/3ndOCZA2SqfKnRTLat',
+            causeString: 'Triggered on $ref',
+            printContributedVariables: true,
+            printPostContent: true
+        )
+    }   
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        harborServer='registry.lxj.com'
+        projectName='spring-boot-helloworld'
+        imageUrl="${harborServer}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', credentialsId: 'gitlab-root-credential', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker image build . -t "${imageUrl}:${imageTag}"'
+                // input(message: '镜像已经构建完成，是否要推送？')
+            }           
+        }
+        stage('Push Docker Image') {
+            when {
+                expression { params.pushImage }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'harbor-user-credential', passwordVariable: 'harborUserPassword', usernameVariable: 'harborUserName')]) {
+                    sh "docker login -u ${env.harborUserName} -p ${env.harborUserPassword} ${harborServer}"
+                    sh "docker image push ${imageUrl}:${imageTag}"
+                }
+            }   
+        }        
+    }
+    post {
+        always {
+            mail to: 'ikubernetes@qq.com',
+            subject: "Status of pipeline: ${currentBuild.fullDisplayName}",
+            body: "${env.BUILD_URL} has result ${currentBuild.result}"
+        }
+    }    
+}
+
+
+
+    钉钉配置示例：
+
+
+    post {
+        always {
+            dingtalk(
+                robot: 'dingtalk',
+                type: 'TEXT',
+                text: [
+                    "Status of pipeline: ${currentBuild.fullDisplayName}",
+                    "${env.BUILD_URL} has result ${currentBuild.result}."
+                ]
+            )
+        }
+    }
+
+
+    企业微信：
+
+
+    post{
+        success{
+            qyWechatNotification failNotify: true, webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a0ab941e-c127-49df-b2bf-91a74953a68f'
+        }
+        failure{
+            qyWechatNotification failNotify: true, webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a0ab941e-c127-49df-b2bf-91a74953a68f'
+        }
+    }
+
+
+
+
+
+
+示例10：代码质量评估
+
+
+pipeline {
+    agent any
+    parameters {
+        booleanParam(name:'pushImage', defaultValue: 'true', description: 'Push Image to Harbor?')
+    }    
+    tools {
+        maven 'maven-3.9.2'
+    }
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref']
+            ],
+            token: 'fClZ0e/kTcqL2ARh7YqxW/3ndOCZA2SqfKnRTLat',
+            causeString: 'Triggered on $ref',
+            printContributedVariables: true,
+            printPostContent: true
+        )
+    }   
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        harborServer='registry.lxj.com'
+        projectName='spring-boot-helloworld'
+        imageUrl="${harborServer}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', credentialsId: 'gitlab-root-credential', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        stage("SonarQube Analysis") {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh 'mvn sonar:sonar'
+                }
+            }
+        }
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }        
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker image build . -t "${imageUrl}:${imageTag}"'
+                // input(message: '镜像已经构建完成，是否要推送？')
+            }           
+        }
+        stage('Push Docker Image') {
+            when {
+                expression { params.pushImage }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'harbor-user-credential', passwordVariable: 'harborUserPassword', usernameVariable: 'harborUserName')]) {
+                    sh "docker login -u ${env.harborUserName} -p ${env.harborUserPassword} ${harborServer}"
+                    sh "docker image push ${imageUrl}:${imageTag}"
+                }
+            }   
+        }        
+    }
+    post{
+        success{
+            qyWechatNotification failNotify: true, webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a0ab941e-c127-49df-b2bf-91a74953a68f'
+        }
+        failure{
+            qyWechatNotification failNotify: true, webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a0ab941e-c127-49df-b2bf-91a74953a68f'
+        }
+    }   
+}
+
+
+
+
+    stage("SonarQube Analysis") {
+        steps {
+            withSonarQubeEnv('SonarQube-Server') {
+                sh 'mvn sonar:sonar'
+            }
+        }
+    }
+    stage("Quality Gate") {
+        steps {
+            timeout(time: 30, unit: 'MINUTES') {
+                waitForQualityGate abortPipeline: true
+            }
+        }
+    }
+
+
+Pipeline格式：
+
+pipeline {
+    agent any|none|label{}|docker{}|kubernetes{}
+    parameters {}
+    evironment {}
+    tools {}
+    stages {
+        stage('NAME') {
+            agent any|none|label{}|docker{}|kubernetes{}
+            when {}
+            steps {
+                STEP1...
+                STEP2...
+            }
+        }
+    }
+    post {
+        always|failure|success|unstable|aborted|... {
+
+        }
+    }
+}
+
+
+
+
+pipeline {
+    agent {
+        docker {
+            image 'eclipse-temurin:17-jre-alpine'
+            label 'master'
+        }
+    }
+    stages {
+        stage('Test') {
+            steps {
+                sh 'java --version'
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+示例11: Pipeline Job分布式构建
+
+pipeline {
+    agent { label 'linux-jnlp-agent' }
+    parameters {
+        booleanParam(name:'pushImage', defaultValue: 'true', description: 'Push Image to Harbor?')
+    }    
+    tools {
+        maven 'maven-3.9.2'
+    }
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref']
+            ],
+            token: 'fClZ0e/kTcqL2ARh7YqxW/3ndOCZA2SqfKnRTLat',
+            causeString: 'Triggered on $ref',
+            printContributedVariables: true,
+            printPostContent: true
+        )
+    }   
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        harborServer='registry.lxj.com'
+        projectName='spring-boot-helloworld'
+        imageUrl="${harborServer}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', credentialsId: 'gitlab-root-credential', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        stage("SonarQube Analysis") {
+            steps {
+                withSonarQubeEnv('SonarQube-Server') {
+                    sh 'mvn sonar:sonar'
+                }
+            }
+        }
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }        
+        stage('Build Docker Image') {
+            agent { label 'master' }
+            steps {
+                sh 'docker image build . -t "${imageUrl}:${imageTag}"'
+                // input(message: '镜像已经构建完成，是否要推送？')
+            }           
+        }
+        stage('Push Docker Image') {
+            agent { label 'master' }
+            when {
+                expression { params.pushImage }
+                beforeAgent true
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'harbor-user-credential', passwordVariable: 'harborUserPassword', usernameVariable: 'harborUserName')]) {
+                    sh "docker login -u ${env.harborUserName} -p ${env.harborUserPassword} ${harborServer}"
+                    sh "docker image push ${imageUrl}:${imageTag}"
+                }
+            }   
+        }        
+    }
+    post{
+        success{
+            qyWechatNotification failNotify: true, webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a0ab941e-c127-49df-b2bf-91a74953a68f'
+        }
+        failure{
+            qyWechatNotification failNotify: true, webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a0ab941e-c127-49df-b2bf-91a74953a68f'
+        }
+    }   
+}
+
+
+
+
+
+
+
+
+Kuberenetes Cluster测试示例：
+
+
+pipeline {
+    agent {
+        kubernetes {
+            inheritFrom 'kube-agent'
+        }
+    }
+    stages {
+        stage('Test Pod Agent') {
+            steps {
+                container('jnlp') {
+                    sh 'java -version'
+                }
+            }
+        }
+    }
+}
+
+
+
+
+pipeline {
+    agent {
+        kubernetes {
+            inheritFrom 'kube-maven'
+        }
+    }
+    stages {
+        stage('Pod Agent jnlp container') {
+            steps {
+                container('jnlp') {
+                    sh 'java -version'
+                }
+            }
+        }
+        stage('Pod Agent maven container') {
+            steps {
+                container('maven') {
+                    sh '''
+                        java -version
+                        mvn -version
+                    '''
+                }
+            }
+        }        
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+示例12：在基于Kubernetes Pod的Agent中进行构建
+
+提示：依赖于事先配置好的PodTemplate。
+
+
+pipeline {
+    agent {
+        kubernetes {
+            inheritFrom 'kube-maven'
+        }
+    }
+    parameters {
+        booleanParam(name:'pushImage', defaultValue: 'true', description: 'Push Image to Harbor?')
+    }    
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref']
+            ],
+            token: 'fClZ0e/kTcqL2ARh7YqxW/3ndOCZA2SqfKnRTLat',
+            causeString: 'Triggered on $ref',
+            printContributedVariables: true,
+            printPostContent: true
+        )
+    }   
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        harborServer='registry.lxj.com'
+        projectName='spring-boot-helloworld'
+        imageUrl="${harborServer}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                container('maven') {
+                    sh 'mvn -B -DskipTests clean package'
+                }
+            }
+        }
+        stage('Test') {
+            steps {
+                container('maven') {
+                    sh 'mvn test'
+                }
+            }
+        }
+        stage("SonarQube Analysis") {
+            steps {
+                container('maven') {                
+                    withSonarQubeEnv('SonarQube') {
+                        sh 'mvn sonar:sonar'
+                    }
+                }
+            }
+        }
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }     
+    }
+    post{
+        always{
+            qyWechatNotification failNotify: true, webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a0ab941e-c127-49df-b2bf-91a74953a68f'
+        }
+    }  
+}
+
+
+示例13：在Pod Agent中制作和推送Docker Image 
+
+提示：dind模式中，需要将主机的docker.sock文件以hostPath卷的形式关联至Pod上。
+
+
+pipeline {
+    agent {
+        kubernetes {
+            inheritFrom 'kube-maven-and-docker'
+        }
+    }
+    parameters {
+        booleanParam(name:'pushImage', defaultValue: 'true', description: 'Push Image to Harbor?')
+    }    
+    tools {
+        maven 'maven-3.9.2'
+    }
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref']
+            ],
+            token: 'fClZ0e/kTcqL2ARh7YqxW/3ndOCZA2SqfKnRTLat',
+            causeString: 'Triggered on $ref',
+            printContributedVariables: true,
+            printPostContent: true
+        )
+    }   
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        harborServer='registry.lxj.com'
+        projectName='spring-boot-helloworld'
+        imageUrl="${harborServer}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', credentialsId: 'gitlab-root-credential', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                container('maven') {
+                    sh 'mvn -B -DskipTests clean package'
+                }
+            }
+        }
+        stage('Test') {
+            steps {
+                container('maven') {
+                    sh 'mvn test'
+                }
+            }
+        }
+        stage("SonarQube Analysis") {
+            steps {
+                container('maven') {                
+                    withSonarQubeEnv('SonarQube') {
+                        sh 'mvn sonar:sonar'
+                    }
+                }
+            }
+        }
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        } 
+        stage('Build Image') {
+            steps {
+                container('dind') {
+                    sh 'docker image build -t ${imageUrl}:${imageTag} .'
+                }
+            }
+        }       
+        stage('Push Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'harbor-user-credential', passwordVariable: 'harborUserPassword', usernameVariable: 'harborUserName')]) {
+                    container('dind') {
+                        sh '''
+                            echo  ${harborUserPassword} | docker login -u ${harborUserName} --password-stdin ${harborServer}
+                            docker image push ${imageUrl}:${imageTag}
+                            docker image tag ${imageUrl}:${imageTag} ${imageUrl}:latest 
+                            docker image push ${imageUrl}:latest
+                        '''
+                    }
+                }
+            }
+        }
+    }
+    post{
+        always{
+            qyWechatNotification failNotify: true, webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a0ab941e-c127-49df-b2bf-91a74953a68f'
+        }
+    }  
+}
+
+
+
+
+
+
+
+
+
+示例14：在Pod Agetnt中制作和推送Docker Image的另一种方法
+
+    Docker Pipline插件提供了一个名为docker的全局变量，以docker变量作为入口，可以调用该插件的所有功能。
+
+        build(image)：基于当前工作目录下的Dockerfile构建Image，其name和tag则由“image”指定；
+        push()：推送构建好的Image对象； 
+        push('tag')：将构建好的Image对象上的tag替换为此处指定的tag，并完成push；
+
+
+    提示：该方法依赖于dind:git镜像，因为它会尝试在运行过程中使用git命令获取相关的信息。
+
+
+
+pipeline {
+    agent {
+        kubernetes {
+            inheritFrom 'kube-maven-and-docker'
+        }
+    }
+    parameters {
+        booleanParam(name:'pushImage', defaultValue: 'true', description: 'Push Image to Harbor?')
+    }    
+    tools {
+        maven 'maven-3.9.2'
+    }
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref']
+            ],
+            token: 'fClZ0e/kTcqL2ARh7YqxW/3ndOCZA2SqfKnRTLat',
+            causeString: 'Triggered on $ref',
+            printContributedVariables: true,
+            printPostContent: true
+        )
+    }   
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        registry='registry.lxj.com'
+        registryUrl='https://registry.lxj.com'
+        registryCredential='harbor-user-credential'
+        projectName='spring-boot-helloworld'
+        imageUrl="${registry}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', credentialsId: 'gitlab-root-credential', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                container('maven') {
+                    sh 'mvn -B -DskipTests clean package'
+                }
+            }
+        }
+        stage('Test') {
+            steps {
+                container('maven') {
+                    sh 'mvn test'
+                }
+            }
+        }
+        stage("SonarQube Analysis") {
+            steps {
+                container('maven') {                
+                    withSonarQubeEnv('SonarQube') {
+                        sh 'mvn sonar:sonar'
+                    }
+                }
+            }
+        }
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        } 
+        stage('Build Image') {
+            steps {
+                container('dind') {
+                    script {
+                        dockerImage = docker.build("${imageUrl}:${imageTag}")  
+                    }
+                }
+            }
+        }       
+        stage('Push Image') {
+            steps {
+                container('dind') {
+                    script {
+                        docker.withRegistry(registryUrl, registryCredential) {
+                            dockerImage.push()
+                            dockerImage.push('latest')
+                        }
+                    }
+                }
+            }
+        } 
+    }
+    post{
+        always{
+            qyWechatNotification failNotify: true, webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a0ab941e-c127-49df-b2bf-91a74953a68f'
+        }
+    }  
+}
+
+
+
+示例15：将构建好的镜像部署到指定的名称空间下
+
+提示：依赖于Kubernetes CLI插件
+
+
+pipeline {
+    agent {
+        kubernetes {
+            inheritFrom 'kube-maven-and-docker-and-kubectl'
+        }
+    }
+    parameters {
+        booleanParam(name:'pushImage', defaultValue: 'true', description: 'Push Image to Harbor?')
+    }    
+    tools {
+        maven 'maven-3.9.2'
+    }
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref']
+            ],
+            token: 'fClZ0e/kTcqL2ARh7YqxW/3ndOCZA2SqfKnRTLat',
+            causeString: 'Triggered on $ref',
+            printContributedVariables: true,
+            printPostContent: true
+        )
+    }   
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        registry='registry.lxj.com'
+        registryUrl='https://registry.lxj.com'
+        registryCredential='harbor-user-credential'
+        projectName='spring-boot-helloworld'
+        imageUrl="${registry}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', credentialsId: 'gitlab-root-credential', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                container('maven') {
+                    sh 'mvn -B -DskipTests clean package'
+                }
+            }
+        }
+        stage('Test') {
+            steps {
+                container('maven') {
+                    sh 'mvn test'
+                }
+            }
+        }
+        stage("SonarQube Analysis") {
+            steps {
+                container('maven') {                
+                    withSonarQubeEnv('SonarQube') {
+                        sh 'mvn sonar:sonar'
+                    }
+                }
+            }
+        }
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        } 
+        stage('Build Image') {
+            steps {
+                container('dind') {
+                    script {
+                        dockerImage = docker.build("${imageUrl}:${imageTag}")  
+                    }
+                }
+            }
+        }       
+        stage('Push Image') {
+            steps {
+                container('dind') {
+                    script {
+                        docker.withRegistry(registryUrl, registryCredential) {
+                            dockerImage.push()
+                            dockerImage.push('latest')
+                        }
+                    }
+                }
+            }
+        }
+        stage('Update-manifests') {
+            steps {
+                container('jnlp') {
+                    sh 'sed -i "s#__IMAGE__#${imageUrl}:${imageTag}#gi" deploy/all-in-one.yaml'
+                }  
+            }
+        }
+        stage('Deploy') {
+            steps {
+                container('kubectl') {
+                    withKubeConfig([credentialsId: 'mykube-serviceaccount-jenkins-deployer', serverUrl: 'https://kubernetes.default.svc']) {
+                        sh '''
+                            kubectl apply -f deploy/all-in-one.yaml -n demo
+                        '''
+                    }
+                }
+            }
+        }              
+    }
+    post{
+        always{
+            qyWechatNotification failNotify: true, webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a0ab941e-c127-49df-b2bf-91a74953a68f'
+        }
+    }  
+}
+
+应用部署
+    Deployment
+        update strategy
+
+    OpenKruise
+
+    Argo Rollouts
+        增强版本的Deployment 
+
+        update strategy
+
+
+
+
+
+
+示例16：使用带有高级发布功能的Rollouts
+
+提示：依赖于提前部署好的Argo Rollouts环境和Prometheus监控系统
+
+pipeline {
+    agent {
+        kubernetes {
+            inheritFrom 'kube-maven-and-docker-and-kubectl'
+        }
+    }
+    parameters {
+        booleanParam(name:'pushImage', defaultValue: 'true', description: 'Push Image to Harbor?')
+    }    
+    tools {
+        maven 'maven-3.9.2'
+    }
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref']
+            ],
+            token: 'fClZ0e/kTcqL2ARh7YqxW/3ndOCZA2SqfKnRTLat',
+            causeString: 'Triggered on $ref',
+            printContributedVariables: true,
+            printPostContent: true
+        )
+    }   
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        registry='registry.lxj.com'
+        registryUrl='https://registry.lxj.com'
+        registryCredential='harbor-user-credential'
+        projectName='spring-boot-helloworld'
+        imageUrl="${registry}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    }
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', credentialsId: 'gitlab-root-credential', url: "${codeRepo}"
+            }
+        }
+        stage('Build') {
+            steps {
+                container('maven') {
+                    sh 'mvn -B -DskipTests clean package'
+                }
+            }
+        }
+        stage('Test') {
+            steps {
+                container('maven') {
+                    sh 'mvn test'
+                }
+            }
+        }
+        stage("SonarQube Analysis") {
+            steps {
+                container('maven') {                
+                    withSonarQubeEnv('SonarQube') {
+                        sh 'mvn sonar:sonar'
+                    }
+                }
+            }
+        }
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        } 
+        stage('Build Image') {
+            steps {
+                container('dind') {
+                    script {
+                        dockerImage = docker.build("${imageUrl}:${imageTag}")  
+                    }
+                }
+            }
+        }       
+        stage('Push Image') {
+            steps {
+                container('dind') {
+                    script {
+                        docker.withRegistry(registryUrl, registryCredential) {
+                            dockerImage.push()
+                            dockerImage.push('latest')
+                        }
+                    }
+                }
+            }
+        }
+        stage('Update-manifests') {
+            steps {
+                container('jnlp') {
+                    sh 'sed -i "s#__IMAGE__#${imageUrl}:${imageTag}#gi" rollouts/rollouts-canary-demo.yaml'
+                }  
+            }
+        }
+        stage('Deploy') {
+            steps {
+                container('kubectl') {
+                    withKubeConfig([credentialsId: 'mykube-serviceaccount-jenkins-deployer', serverUrl: 'https://kubernetes.default.svc']) {
+                        sh '''
+                            kubectl apply -f rollouts/rollouts-canary-demo.yaml -n demo
+                        '''
+                    }
+                }
+            }
+        }              
+    }
+    post{
+        always{
+            qyWechatNotification failNotify: true, webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a0ab941e-c127-49df-b2bf-91a74953a68f'
+        }
+    }  
+}
+
+
+    
+
+
+
+
+作业： 
+    1、为Mavne工程项目示例spring-boot-helloworld添加代码质量扫描功能；
+    2、分布式构建环境：
+        （1）将正常部署的Jenkins配置为Agent；
+            jnlp和ssh的方式都要实现；
+
+            扩展测试：spring-boot-helloworld的完整流水线的执行；
+
+        （2）静态容器的Agent
+            jnlp和ssh的方式都要实现； 
+
+            扩展测试：spring-boot-helloworld的完整流水线的执行；思考遇到的问题的解决方案；
+
+        （3）基于Docker容器的动态Agent
+            jnlp和ssh的方式都要实现；
+
+            扩展测试：spring-boot-helloworld的完整流水线的执行；思考遇到的问题的解决方案；
+
+        （4）基于Kubernetes Pod的动态Agent
+            Kubernetes集群外部部署的Jenkins Master和集群上部署的Jenkins Master都要进行测试； 
+
+            扩展测试：spring-boot-helloworld的完整流水线的执行；思考遇到的问题的解决方案；
+
+
+
+
+
+扩展：多分支流水线示例
+
+
+
+pipeline {
+    agent {
+        kubernetes {
+            inheritFrom 'kube-maven-and-docker-and-kubectl'
+        }
+    }    
+    tools {
+        maven 'maven-3.9.2'
+    }
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref']
+            ],
+            token: 'fClZ0e/kTcqL2ARh7YqxW/3ndOCZA2SqfKnRTLat',
+            causeString: 'Triggered on $ref',
+            printContributedVariables: true,
+            printPostContent: true
+        )
+    }   
+    environment {
+        codeRepo="http://git.lxj.com/devops/spring-boot-helloWorld.git"
+        registry='registry.lxj.com'
+        registryUrl='https://registry.lxj.com'
+        registryCredential='harbor-user-credential'
+        projectName='spring-boot-helloworld'
+        imageUrl="${registry}/ikubernetes/${projectName}"
+        imageTag="${BUILD_ID}"
+    } 
+    stages {
+        stage('Source') {
+            steps {
+                git branch: 'main', url: "${GitRepo}"
+            }
+        }      
+        stage('Build') {
+            steps {
+                container('maven') {
+                    sh 'mvn -B -DskipTests clean package'
+                }
+            }
+        }       
+        stage('Test') {
+            steps {
+                container('maven') {
+                    sh 'mvn test'
+                }
+            }
+        }
+        stage("SonarQube Analysis") {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    container('maven') {
+                        sh 'mvn sonar:sonar'
+                    }
+                }
+            }
+        }
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+        stage('Build Dev Image') {
+            when { branch 'develop' }
+            steps {
+                container('dind') {
+                    script {
+                        dockerImage = docker.build("${HarborServer}/${ImageUrl}:${ImageTag}-dev")  
+                    }
+                }
+            }
+        }
+        stage('Build Image') {
+            when { branch 'master' }
+            steps {
+                container('dind') {
+                    script {
+                        dockerImage = docker.build("${HarborServer}/${ImageUrl}:${ImageTag}")  
+                    }
+                }
+            }
+        }               
+        stage('Push Image') {
+            when { anyOf { branch 'master'; branch 'develop' } }
+            steps {
+                container('dind') {
+                    script {
+                        docker.withRegistry( RegistryUrl, RegistryCredential ) {
+                            dockerImage.push()
+                        }
+                    }
+                }
+            }
+        }
+        stage('Update-dev-manifests') {
+            when { branch 'develop' }
+            steps {
+                container('jnlp') {
+                    sh 'sed -i "s#__IMAGE__#${HarborServer}/${ImageUrl}:${ImageTag}-dev#gi" deploy/all-in-one.yaml'
+                }  
+            }
+        }                 
+        stage('Update-manifests') {
+            when { branch 'master' }
+            steps {
+                container('jnlp') {
+                    sh 'sed -i "s#__IMAGE__#${HarborServer}/${ImageUrl}:${ImageTag}#gi" deploy/all-in-one.yaml'
+                }  
+            }
+        }
+        stage('Deploy to dev-env') {
+            when { branch 'develop' }
+            steps {
+                container('kubectl') {
+                    withKubeConfig([credentialsId: 'kubernetes-admin-mageedu', serverUrl: 'https://kubernetes.default.svc']) {
+                        sh '''
+                            kubectl create namespace hello-dev 
+                            kubectl apply -f deploy/all-in-one.yaml -n hello-dev
+                        '''
+                    }
+                }
+            }
+        }
+        stage('Deploy to prod-env') {
+            when { branch 'master' }
+            steps {
+                container('kubectl') {
+                    withKubeConfig([credentialsId: 'kubernetes-admin-mageedu', serverUrl: 'https://kubernetes.default.svc']) {
+                        sh '''
+                            kubectl create namespace hello-prod
+                            kubectl apply -f deploy/all-in-one.yaml -n hello-prod
+                        '''
+                    }
+                }
+            }
+        }
+    }
+    post{
+        always{
+            qyWechatNotification failNotify: true, webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a0ab941e-c127-49df-b2bf-91a74953a68f'
+        }
+    }
+}
+
+
+
+
+
+
+

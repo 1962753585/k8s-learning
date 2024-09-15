@@ -1,0 +1,90 @@
+
+// Docker 动态分布式构建 + 构建后在对应主机运行
+// 确保您的 Jenkins 环境中安装了 Pipeline 插件、Docker 插件、Docker Cloud 插件，
+// 并且配置了动态代理的 JNLP 容器模板。此外，您还需要安装 DingTalk 插件，
+// 并配置好 DingTalk 相关的参数和凭据，以便可以通过 Jenkins 发送钉钉消息。
+
+pipeline {
+    agent {
+        docker {
+            label 'my-docker-agent-label' // 请替换为您 Docker Cloud 中的标签
+        }
+    }
+    triggers {
+        gitlabMergeRequest(
+            triggerOnOpenMergeRequest: true,
+            triggerOnReopenMergeRequest: true,
+            triggerOnUpdateMergeRequest: true,
+            triggerOnPush: false,
+            branches: ['master']
+        )
+    }
+    stages {
+        stage('Confirmation') {
+            steps {
+                input message: '请确认是否触发自动化构建', submitter: 'ops-team'
+            }
+        }
+        stage('Clone Source Code') {
+            steps {
+                git branch: 'master', credentialsId: 'your-git-credentials-id', url: 'your-git-repo-url'
+            }
+        }
+        stage('Maven Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+        stage('Build and Push Docker Image') {
+            steps {
+                script {
+                    def registryCredentials = 'your-registry-credentials-id'
+                    def imageName = "<your-docker-registry>/<image-name>:latest"
+                    docker.withRegistry('https://your-registry-url', registryCredentials) {
+                        sh "docker build -t $imageName ."
+                        sh "docker push $imageName"
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                def pullCredentials = 'your-pull-credentials-id'
+                def imageName = "<your-docker-registry>/<image-name>:latest"
+                docker.withRegistry('https://your-registry-url', pullCredentials) {
+                    sh "docker run -d -p 8080:8080 $imageName"
+                }
+            }
+        }
+        success {
+            dingTalk(
+                message: "Jenkins 构建成功！"
+            )
+        }
+        failure {
+            dingTalk(
+                message: "Jenkins 构建失败！"
+            )
+        }
+    }
+}
+
+// 方法二
+post {
+    always {
+        script {
+            def dockerHost = 'tcp://your-docker-host:2376'  // Docker 服务器地址
+            def registryUrl = 'https://your-registry-url'   // 私有镜像仓库地址
+            def imageName = "<your-docker-registry>/<image-name>:latest"
+            def registryCredentials = 'your-registry-credentials-id'  // 镜像仓库凭据 ID
+
+            // 登录到私有镜像仓库
+            sh "docker --host=$dockerHost login --username <username> --password <password> $registryUrl"
+
+            // 使用 Docker CLI 连接到 Docker 服务器并运行容器
+            sh "docker --host=$dockerHost run -d -p 8080:8080 $imageName"
+        }
+    }
+}
